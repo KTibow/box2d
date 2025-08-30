@@ -4,147 +4,209 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
-  release-linux-amd64-arm64-web:
-    name: "Release Linux AMD64, ARM64 and Web"
-    runs-on: ubuntu-latest
+  build-packages:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            runner: ubuntu-latest
+            install_deps: |
+              sudo apt-get update && \
+              sudo apt-get install -y --no-install-recommends ninja-build
+            configure: |
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBOX2D_AVX2=ON \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
+            lib_file: build/src/libbox2d.a
+            package_name: box2d-linux-amd64
+
+          - name: linux-arm64
+            runner: ubuntu-latest
+            install_deps: |
+              sudo apt-get update && \
+              sudo apt-get install -y --no-install-recommends \
+                ninja-build gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+            configure: |
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+                -DCMAKE_SYSTEM_NAME=Linux \
+                -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
+            lib_file: build/src/libbox2d.a
+            package_name: box2d-linux-arm64
+
+          - name: web
+            runner: ubuntu-latest
+            install_deps: |
+              sudo apt-get update && \
+              sudo apt-get install -y --no-install-recommends ninja-build
+            setup_emscripten: true
+            configure: |
+              emcmake cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_AVX2=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
+            lib_file: build/src/libbox2d.a
+            package_name: box2d-web
+
+          - name: macos-arm64
+            runner: macos-latest
+            configure: |
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
+            lib_file: build/src/libbox2d.a
+            package_name: box2d-macos-arm64
+
+          - name: windows-amd64
+            runner: windows-latest
+            setup_msvc_arch: x64
+            configure: |
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="/DB2_MAX_WORLDS=65534"
+            lib_file: build/src/box2d.lib
+            package_name: box2d-windows-amd64
+
+          - name: windows-arm64
+            runner: windows-11-arm
+            setup_msvc_arch: arm64
+            configure: |
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_SYSTEM_NAME=Windows \
+                -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                -DBOX2D_DISABLE_SIMD=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DBOX2D_SAMPLES=OFF \
+                -DBOX2D_VALIDATE=OFF \
+                -DBOX2D_UNIT_TESTS=OFF \
+                -DCMAKE_C_FLAGS="/DB2_MAX_WORLDS=65534"
+            lib_file: build/src/box2d.lib
+            package_name: box2d-windows-arm64
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: |
-          sudo apt-get update && \
-          sudo apt-get install -y --no-install-recommends \
-          ninja-build gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+        if: ${{ matrix.install_deps }}
+        run: ${{ matrix.install_deps }}
 
-          sudo wget https://apt.llvm.org/llvm.sh
-          sudo chmod +x llvm.sh
-          sudo ./llvm.sh 20
+      - name: Setup MSVC dev command prompt
+        if: ${{ matrix.setup_msvc_arch }}
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: ${{ matrix.setup_msvc_arch }}
 
       - name: Setup Emscripten
+        if: ${{ matrix.setup_emscripten }}
         uses: mymindstorm/setup-emsdk@v14
 
       - name: Configure CMake
-        run: |
-          cmake -B ${{github.workspace}}/build -GNinja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER=clang-20 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-          -DBOX2D_AVX2=ON \
-          -DBOX2D_DISABLE_SIMD=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBOX2D_SAMPLES=OFF \
-          -DBOX2D_VALIDATE=OFF \
-          -DBOX2D_UNIT_TESTS=OFF \
-          -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
-
-          cmake -B ${{github.workspace}}/arm64-build -GNinja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-          -DCMAKE_SYSTEM_NAME=Linux \
-          -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-          -DBOX2D_DISABLE_SIMD=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBOX2D_SAMPLES=OFF \
-          -DBOX2D_VALIDATE=OFF \
-          -DBOX2D_UNIT_TESTS=OFF \
-          -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
-
-          emcmake cmake -B ${{github.workspace}}/web-build -GNinja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER=clang-20 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-          -DBOX2D_AVX2=ON \
-          -DBOX2D_DISABLE_SIMD=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBOX2D_SAMPLES=OFF \
-          -DBOX2D_VALIDATE=OFF \
-          -DBOX2D_UNIT_TESTS=OFF \
-          -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
+        run: ${{ matrix.configure }}
 
       - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package (Unix)
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
         run: |
-          cmake --build ${{github.workspace}}/build --config Release
-          cmake --build ${{github.workspace}}/arm64-build --config Release
-          cmake --build ${{github.workspace}}/web-build --config Release
+          set -euxo pipefail
+          PKG="${{ matrix.package_name }}"
+          mkdir -p "$PKG/src"
+          cp -r include "$PKG"
+          cp src/*.h "$PKG/src"
+          cp "${{ matrix.lib_file }}" "$PKG"
+          cmake -E tar cfv "${PKG}.tar.gz" --format=gnutar "$PKG"
 
-      - name: Package
+      - name: Package (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
         run: |
-          mkdir -p box2d-linux-amd64/src
-          cp -r include box2d-linux-amd64
-          cp src/*.h box2d-linux-amd64/src
-          cp -r box2d-linux-amd64 box2d-linux-arm64
-          cp -r box2d-linux-amd64 box2d-web
-          cp build/src/libbox2d.a box2d-linux-amd64
-          cp arm64-build/src/libbox2d.a box2d-linux-arm64
-          cp web-build/src/libbox2d.a box2d-web
-          tar -czvf box2d-linux-amd64.tar.gz box2d-linux-amd64
-          tar -czvf box2d-linux-arm64.tar.gz box2d-linux-arm64
-          tar -czvf box2d-web.tar.gz box2d-web
+          $pkg="${{ matrix.package_name }}"
+          New-Item -ItemType Directory -Force -Path "$pkg/src" | Out-Null
+          Copy-Item -Recurse -Force include "$pkg"
+          Get-ChildItem -Path src -Filter *.h | Copy-Item -Destination "$pkg/src"
+          Copy-Item -Force "${{ matrix.lib_file }}" "$pkg"
+          cmake -E tar cfv "${pkg}.tar.gz" --format=gnutar "$pkg"
 
-      - name: Create Tag
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          TAG="$(echo ${{github.sha}} | head -c 8)"
-          git tag "${TAG}"
-          git push origin "${TAG}"
-
-          echo "TAG=${TAG}" >> ${GITHUB_ENV}
-
-      - name: Upload Artifact to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            ${{github.workspace}}/box2d-linux-amd64.tar.gz
-            ${{github.workspace}}/box2d-linux-arm64.tar.gz
-            ${{github.workspace}}/box2d-web.tar.gz
-          tag_name: ${{env.TAG}}
-          make_latest: true
+          name: ${{ matrix.package_name }}
+          path: ${{ matrix.package_name }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
-  release-macos-arm64:
-    name: "Release macOS ARM64"
-    runs-on: macos-latest
+  publish-release:
+    name: Create release and upload assets
+    runs-on: ubuntu-latest
+    needs: build-packages
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure CMake
-        run: |
-          cmake -B ${{github.workspace}}/build -GNinja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-          -DBOX2D_DISABLE_SIMD=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBOX2D_SAMPLES=OFF \
-          -DBOX2D_VALIDATE=OFF \
-          -DBOX2D_UNIT_TESTS=OFF \
-          -DCMAKE_C_FLAGS="-DB2_MAX_WORLDS=65534"
-
-      - name: Build
-        run: cmake --build ${{github.workspace}}/build --config Release
-
-      - name: Package
-        run: |
-          mkdir -p box2d-macos-arm64/src
-          cp build/src/libbox2d.a box2d-macos-arm64
-          cp -r include box2d-macos-arm64
-          cp src/*.h box2d-macos-arm64/src
-          tar -czvf box2d-macos-arm64.tar.gz box2d-macos-arm64
-
       - name: Create Tag
         run: |
           git config user.name "GitHub Actions"
           git config user.email "github-actions@users.noreply.github.com"
-          TAG="$(echo ${{github.sha}} | head -c 8)"
+          TAG="$(echo ${{ github.sha }} | head -c 8)"
           git tag "${TAG}"
           git push origin "${TAG}"
-
           echo "TAG=${TAG}" >> ${GITHUB_ENV}
 
-      - name: Upload Artifact to Release
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: box2d-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{github.workspace}}/box2d-macos-arm64.tar.gz
-          tag_name: ${{env.TAG}}
+          files: dist/*.tar.gz
+          tag_name: ${{ env.TAG }}
           make_latest: true
+          generate_release_notes: true
