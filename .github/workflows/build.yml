@@ -65,6 +65,32 @@ jobs:
             cmake_build: "cmake --build build --config Debug"
             test_command: "./bin/Debug/test"
 
+          # Ubuntu GCC samples static
+          - name: samples-ubuntu-gcc-static
+            runs_on: ubuntu-latest
+            install_deps: "libx11-dev wayland-protocols libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev"
+            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
+            cmake_build: "cmake --build build --config Release"
+
+          # Ubuntu GCC ARM64 samples static (cross-compile, samples=OFF)
+          - name: samples-ubuntu-gcc-static-arm64
+            runs_on: ubuntu-latest
+            install_deps: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"
+            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
+            cmake_build: "cmake --build build --config Release"
+
+          # macOS samples static
+          - name: samples-macos-static
+            runs_on: macos-latest
+            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
+            cmake_build: "cmake --build build --config Release"
+
+          # macOS samples dynamic
+          - name: samples-macos-dynamic
+            runs_on: macos-latest
+            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBOX2D_UNIT_TESTS=OFF"
+            cmake_build: "cmake --build build --config Release"
+
           # Windows x64 samples static
           - name: samples-windows-static
             runs_on: windows-latest
@@ -91,32 +117,6 @@ jobs:
             runs_on: windows-11-arm
             msvc_arch: arm64
             cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=ARM64 -DCMAKE_SYSTEM_NAME=Windows -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
-
-          # macOS samples static
-          - name: samples-macos-static
-            runs_on: macos-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
-
-          # macOS samples dynamic
-          - name: samples-macos-dynamic
-            runs_on: macos-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
-
-          # Ubuntu GCC samples static
-          - name: samples-ubuntu-gcc-static
-            runs_on: ubuntu-latest
-            install_deps: "libx11-dev wayland-protocols libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev"
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
-
-          # Ubuntu GCC ARM64 samples static (cross-compile, samples=OFF)
-          - name: samples-ubuntu-gcc-static-arm64
-            runs_on: ubuntu-latest
-            install_deps: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
             cmake_build: "cmake --build build --config Release"
 
     steps:
