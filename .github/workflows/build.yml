@@ -2,7 +2,7 @@ name: CI Build
 
 on:
   push:
-    branches: [main, ext-build]
+    branches: [main]
   pull_request:
     branches: [main]
 
