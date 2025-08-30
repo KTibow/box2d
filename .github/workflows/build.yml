@@ -8,95 +8,116 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.runs_on }}-${{ matrix.compiler }}-${{ matrix.build_type }}
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 10
     strategy:
       matrix:
+        runs_on:
+          [
+            ubuntu-latest,
+            ubuntu-24.04-arm64,
+            macos-latest,
+            windows-latest,
+            windows-11-arm,
+          ]
+        compiler: [clang, default]
+        build_type: [basic, samples-static, samples-dynamic]
         include:
-          # Ubuntu GCC x64
-          - name: ubuntu-gcc
-            runs_on: ubuntu-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/test"
+          # Build type defaults
+          - build_type: basic
+            cmake_build_type: Debug
+            cmake_samples: OFF
+            cmake_shared_libs: OFF
+            cmake_unit_tests: ON
+            cmake_sanitize: ON
+            cmake_validate: ON
+            cmake_warning_as_error: ON
+            build_config: Debug
+            run_tests: true
 
-          # Ubuntu Clang x64
-          - name: ubuntu-clang
-            runs_on: ubuntu-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/test"
+          - build_type: samples-static
+            cmake_build_type: Release
+            cmake_samples: ON
+            cmake_shared_libs: OFF
+            cmake_unit_tests: OFF
+            cmake_sanitize: OFF
+            cmake_validate: OFF
+            cmake_warning_as_error: OFF
+            build_config: Release
+            run_tests: false
 
-          # Ubuntu GCC ARM64
-          - name: ubuntu-gcc-arm64
-            runs_on: ubuntu-24.04-arm64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/test"
+          - build_type: samples-dynamic
+            cmake_build_type: Release
+            cmake_samples: ON
+            cmake_shared_libs: ON
+            cmake_unit_tests: OFF
+            cmake_sanitize: OFF
+            cmake_validate: OFF
+            cmake_warning_as_error: OFF
+            build_config: Release
+            run_tests: false
 
-          # Ubuntu Clang ARM64
-          - name: ubuntu-clang-arm64
-            runs_on: ubuntu-24.04-arm64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang -DBOX2D_SAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/test"
+          # Compiler flags
+          - compiler: clang
+            cmake_compiler_flags: "-DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang"
+          - compiler: default
+            cmake_compiler_flags: ""
 
-          # macOS x64
-          - name: macos
-            runs_on: macos-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBOX2D_SAMPLES=OFF -DBOX2D_SANITIZE=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/test"
+          # Platform-specific settings
+          - runs_on: ubuntu-latest
+            test_path: "./bin/test"
+            cmake_system_flags: ""
 
-          # Windows x64
-          - name: windows
-            runs_on: windows-latest
+          - runs_on: ubuntu-24.04-arm64
+            test_path: "./bin/test"
+            cmake_system_flags: ""
+
+          - runs_on: macos-latest
+            test_path: "./bin/test"
+            cmake_system_flags: ""
+
+          - runs_on: windows-latest
             msvc_arch: x64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBOX2D_SAMPLES=OFF -DBOX2D_SANITIZE=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/Debug/test"
+            test_path: "./bin/Debug/test"
+            cmake_system_flags: ""
 
-          # Windows ARM64
-          - name: windows-arm64
-            runs_on: windows-11-arm
+          - runs_on: windows-11-arm
             msvc_arch: arm64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_SYSTEM_PROCESSOR=ARM64 -DCMAKE_SYSTEM_NAME=Windows -DBOX2D_SAMPLES=OFF -DBOX2D_SANITIZE=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_VALIDATE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
-            cmake_build: "cmake --build build --config Debug"
-            test_command: "./bin/Debug/test"
+            test_path: "./bin/Debug/test"
+            cmake_system_flags: "-DCMAKE_SYSTEM_PROCESSOR=ARM64 -DCMAKE_SYSTEM_NAME=Windows"
 
-          # Ubuntu GCC samples static
-          - name: samples-ubuntu-gcc-static
-            runs_on: ubuntu-latest
+          # Ubuntu sample dependencies
+          - runs_on: ubuntu-latest
+            build_type: samples-static
             install_deps: "libx11-dev wayland-protocols libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev"
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
 
-          # macOS samples static
-          - name: samples-macos-static
-            runs_on: macos-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
+        exclude:
+          # Only Ubuntu supports multiple compilers
+          - runs_on: macos-latest
+            compiler: clang
+          - runs_on: windows-latest
+            compiler: clang
+          - runs_on: windows-11-arm
+            compiler: clang
 
-          # macOS samples dynamic
-          - name: samples-macos-dynamic
-            runs_on: macos-latest
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
+          # ARM platforms don't support samples
+          - runs_on: ubuntu-24.04-arm64
+            build_type: samples-static
+          - runs_on: ubuntu-24.04-arm64
+            build_type: samples-dynamic
+          - runs_on: windows-11-arm
+            build_type: samples-static
+          - runs_on: windows-11-arm
+            build_type: samples-dynamic
 
-          # Windows x64 samples static
-          - name: samples-windows-static
-            runs_on: windows-latest
-            msvc_arch: x64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
-
-          # Windows x64 samples dynamic
-          - name: samples-windows-dynamic
-            runs_on: windows-latest
-            msvc_arch: x64
-            cmake_configure: "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOX2D_SAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBOX2D_UNIT_TESTS=OFF"
-            cmake_build: "cmake --build build --config Release"
+          # Temp disabled
+          # - runs_on: ubuntu-latest
+          #   compiler: clang
+          #   build_type: samples-static
+          # - runs_on: ubuntu-latest
+          #   compiler: clang
+          #   build_type: samples-dynamic
 
     steps:
       - uses: actions/checkout@v4
@@ -112,12 +133,12 @@ jobs:
           arch: ${{ matrix.msvc_arch }}
 
       - name: Configure CMake
-        run: ${{ matrix.cmake_configure }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ matrix.cmake_compiler_flags }} ${{ matrix.cmake_system_flags }} -DBOX2D_SAMPLES=${{ matrix.cmake_samples }} -DBUILD_SHARED_LIBS=${{ matrix.cmake_shared_libs }} -DBOX2D_UNIT_TESTS=${{ matrix.cmake_unit_tests }} -DBOX2D_SANITIZE=${{ matrix.cmake_sanitize }} -DBOX2D_VALIDATE=${{ matrix.cmake_validate }} -DCMAKE_COMPILE_WARNING_AS_ERROR=${{ matrix.cmake_warning_as_error }}
 
       - name: Build
-        run: ${{ matrix.cmake_build }}
+        run: cmake --build build --config ${{ matrix.build_config }}
 
       - name: Test
-        if: ${{ matrix.test_command }}
+        if: ${{ matrix.run_tests }}
         working-directory: build
-        run: ${{ matrix.test_command }}
+        run: ${{ matrix.test_path }}
