@@ -87,9 +87,12 @@ jobs:
             test_path: "./bin/Debug/test"
             cmake_system_flags: "-DCMAKE_SYSTEM_PROCESSOR=ARM64 -DCMAKE_SYSTEM_NAME=Windows"
 
-          # Ubuntu sample dependencies
+          # Sample deps
           - runs_on: ubuntu-latest
             build_type: samples-static
+            install_deps: "libx11-dev wayland-protocols libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev"
+          - runs_on: ubuntu-latest
+            build_type: samples-dynamic
             install_deps: "libx11-dev wayland-protocols libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev"
 
         exclude:
