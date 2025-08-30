@@ -16,7 +16,7 @@ jobs:
         runs_on:
           [
             ubuntu-latest,
-            ubuntu-24.04-arm64,
+            ubuntu-24.04-arm,
             macos-latest,
             windows-latest,
             windows-11-arm,
@@ -69,7 +69,7 @@ jobs:
             test_path: "./bin/test"
             cmake_system_flags: ""
 
-          - runs_on: ubuntu-24.04-arm64
+          - runs_on: ubuntu-24.04-arm
             test_path: "./bin/test"
             cmake_system_flags: ""
 
@@ -105,9 +105,9 @@ jobs:
             compiler: clang
 
           # ARM platforms don't support samples
-          - runs_on: ubuntu-24.04-arm64
+          - runs_on: ubuntu-24.04-arm
             build_type: samples-static
-          - runs_on: ubuntu-24.04-arm64
+          - runs_on: ubuntu-24.04-arm
             build_type: samples-dynamic
           - runs_on: windows-11-arm
             build_type: samples-static
