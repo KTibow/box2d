@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: |
-      ${{ matrix.runs_on.name }}${{ matrix.compiler.name }}${{ matrix.build.id }}
+      ${{ matrix.runs_on.name }}${{ matrix.compiler.name }}${{ matrix.build_type.id }}
     runs-on: ${{ matrix.runs_on.runner }}
     timeout-minutes: 10
     strategy:
@@ -82,22 +82,22 @@ jobs:
             run_tests: false
 
         exclude:
-          # Only Ubuntu supports clang in your original config
-          - runs_on: { id: macos-latest }
+          # Only Ubuntu supports clang
+          - runs_on: { runner: macos-latest }
             compiler: { id: clang }
-          - runs_on: { id: windows-latest }
+          - runs_on: { runner: windows-latest }
             compiler: { id: clang }
-          - runs_on: { id: windows-11-arm }
+          - runs_on: { runner: windows-11-arm }
             compiler: { id: clang }
 
           # ARM platforms don't support samples
-          - runs_on: { id: ubuntu-24.04-arm64 }
+          - runs_on: { runner: ubuntu-24.04-arm64 }
             build_type: { id: samples-static }
-          - runs_on: { id: ubuntu-24.04-arm64 }
+          - runs_on: { runner: ubuntu-24.04-arm64 }
             build_type: { id: samples-dynamic }
-          - runs_on: { id: windows-11-arm }
+          - runs_on: { runner: windows-11-arm }
             build_type: { id: samples-static }
-          - runs_on: { id: windows-11-arm }
+          - runs_on: { runner: windows-11-arm }
             build_type: { id: samples-dynamic }
 
     steps:
