@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: |
-      ${{ matrix.runs_on.name }}${{ matrix.compiler.name }}${{ matrix.build_type.id }}
+      ${{ matrix.runs_on.name }}${{ matrix.compiler.name }}${{ matrix.build_type.name }}
     runs-on: ${{ matrix.runs_on.runner }}
     timeout-minutes: 10
     strategy:
@@ -40,8 +40,10 @@ jobs:
 
         compiler:
           - name: -clang
+            id: clang
             cmake_compiler_flags: "-DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang"
           - name: ""
+            id: default
             cmake_compiler_flags: ""
 
         build_type:
