@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: |
-      ${{ matrix.runs_on.name }}${{ matrix.compiler.name == 'default' ? '' : '-' + matrix.compiler.name }}${{ matrix.build.id == 'basic' ? '' : '-' + matrix.build.id }}
+      ${{ matrix.runs_on.name }}${{ matrix.compiler.name }}${{ matrix.build.id }}
     runs-on: ${{ matrix.runs_on.runner }}
     timeout-minutes: 10
     strategy:
@@ -39,13 +39,14 @@ jobs:
             cmake_system_flags: "-DCMAKE_SYSTEM_PROCESSOR=ARM64 -DCMAKE_SYSTEM_NAME=Windows"
 
         compiler:
-          - name: clang
+          - name: -clang
             cmake_compiler_flags: "-DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang"
-          - name: default
+          - name: ""
             cmake_compiler_flags: ""
 
         build_type:
-          - id: basic
+          - name: ""
+            id: basic
             cmake_build_type: Debug
             cmake_samples: OFF
             cmake_shared_libs: OFF
@@ -56,7 +57,8 @@ jobs:
             build_config: Debug
             run_tests: true
 
-          - id: samples-static
+          - name: "-samples-static"
+            id: samples-static
             cmake_build_type: Release
             cmake_samples: ON
             cmake_shared_libs: OFF
@@ -67,7 +69,8 @@ jobs:
             build_config: Release
             run_tests: false
 
-          - id: samples-dynamic
+          - name: "-samples-dynamic"
+            id: samples-dynamic
             cmake_build_type: Release
             cmake_samples: ON
             cmake_shared_libs: ON
